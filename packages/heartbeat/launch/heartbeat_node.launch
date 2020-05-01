@@ -1,0 +1,15 @@
+<launch>
+  <arg name="veh" doc="Name of vehicle. ex megaman"/>
+  <arg name="robot_type" default="duckiedrone"  
+		doc="The type of the robot: should be duckiebot, 
+		watchtower, duckiedrone or traffic_light"/>
+
+  <arg name="pkg_name" value="heartbeat" />
+  <arg name="node_name" value="heartbeat_publisher_NEVER_RUN_ON_DRONE_node" />
+
+  <group ns="$(arg veh)">
+    <node  name="$(arg node_name)" pkg="$(arg pkg_name)" 
+      type="$(arg node_name).py" output="screen">
+          </node>
+  </group>
+</launch>

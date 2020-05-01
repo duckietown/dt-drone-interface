@@ -4,4 +4,6 @@ set -e
 
 # YOUR CODE BELOW THIS LINE
 # ----------------------------------------------------------------------------
-echo "This is an empty launch script. Update it to launch your application."
+roslaunch --wait drone_interface all.launch veh:=$VEHICLE_NAME \
+                              robot_type:=$ROBOT_TYPE
+
