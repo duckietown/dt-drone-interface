@@ -120,8 +120,6 @@ class StateEstimator(object):
             rospy.Subscriber(self.ema_topic, Odometry, self.ema_helper_callback)
             rospy.Subscriber(self.ukf_topics[2], Odometry, self.state_callback)
         elif self.primary_estimator == 'ukf7d':
-            print "\nsub process called HERE - ------------------\n"
-            print "what're we subbing to ", self.ukf_topics[7]
             rospy.Subscriber("/drone2/"+self.ukf_topics[7], Odometry, self.state_callback)
         elif self.primary_estimator == 'ukf12d':
             rospy.Subscriber(self.ukf_topics[12], Odometry, self.state_callback)
@@ -222,7 +220,6 @@ class StateEstimator(object):
         return cmd
 
     def state_callback(self, msg):
-        print "state_callback"
         """
         Callback that handles the primary estimator republishing.
         """
