@@ -35,6 +35,7 @@ class UKFStateEstimator7D(object):
     #       location.
     
     def __init__(self, loop_hz, altitude_throttled=False, imu_throttled=False, optical_flow_throttled=False, camera_pose_throttled=False):
+        print "\ninit\n"
         # self.ready_to_filter is False until we get initial measurements in
         # order to be able to initialize the filter's state vector x and
         # covariance matrix P.
@@ -83,8 +84,10 @@ class UKFStateEstimator7D(object):
         self.last_measurement_vector = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         
         self.initialize_ros()
+
         
     def initialize_ros(self):
+        print "\n initialize_ros\n"
         """
         Initialize ROS-related objects, e.g., the node, subscribers, etc.
         """
@@ -222,6 +225,7 @@ class UKFStateEstimator7D(object):
             self.printed_filter_start_notice = True
         
     def imu_data_callback(self, data):
+        #print "\n imu_data_callback\n"
         """
         Handle the receipt of an Imu message. Only take the linear acceleration
         along the z-axis.
@@ -241,6 +245,7 @@ class UKFStateEstimator7D(object):
         self.in_callback = False
                         
     def altitude_data_callback(self, data):
+        #print "\n altitude_data_callback\n"
         """
         Handle the receipt of a Range message from the IR sensor.
         """
@@ -334,9 +339,12 @@ class UKFStateEstimator7D(object):
         self.in_callback = False
             
     def check_if_ready_to_filter(self):
+        print "\n check_if_ready_to_filter\n"
+        print "checking ready to filter"
         self.ready_to_filter = (self.got_altitude and self.got_imu)
                         
     def publish_current_state(self):
+        print "\n publish_current_state\n"
         """
         Publish the current state estimate and covariance from the UKF. This is
         a State message containing:
@@ -453,12 +461,14 @@ class UKFStateEstimator7D(object):
         return result
         
     def start_loop(self):
+        print "\n start_loop\n"
         """
         Begin the UKF's loop of predicting and updating. Publish a state
         estimate at the end of each loop.
         """
         rate = rospy.Rate(self.loop_hz)
         while not rospy.is_shutdown():
+            print "ready to filter", self.ready_to_filter
             if self.ready_to_filter:
                 self.print_notice_if_first()
                 self.ukf_predict()

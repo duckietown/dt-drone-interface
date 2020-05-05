@@ -120,7 +120,9 @@ class StateEstimator(object):
             rospy.Subscriber(self.ema_topic, Odometry, self.ema_helper_callback)
             rospy.Subscriber(self.ukf_topics[2], Odometry, self.state_callback)
         elif self.primary_estimator == 'ukf7d':
-            rospy.Subscriber(self.ukf_topics[7], Odometry, self.state_callback)
+            print "\nsub process called HERE - ------------------\n"
+            print "what're we subbing to ", self.ukf_topics[7]
+            rospy.Subscriber("/drone2/"+self.ukf_topics[7], Odometry, self.state_callback)
         elif self.primary_estimator == 'ukf12d':
             rospy.Subscriber(self.ukf_topics[12], Odometry, self.state_callback)
         elif self.primary_estimator == 'ema':
@@ -138,10 +140,13 @@ class StateEstimator(object):
                 other_cmd = self.append_throttle_flags(other_cmd, other_estimator)
                 process_cmds.append(other_cmd)
             
+
+
         for p in process_cmds:
             print 'Starting:', p
             # NOTE: shell=True could be security hazard
             self.processes.append((p, subprocess.Popen(p, shell=True)))
+        
             
     def setup_ukf_with_ground_truth(self):
         """
@@ -217,6 +222,7 @@ class StateEstimator(object):
         return cmd
 
     def state_callback(self, msg):
+        print "state_callback"
         """
         Callback that handles the primary estimator republishing.
         """
