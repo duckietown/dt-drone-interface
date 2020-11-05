@@ -1,5 +1,0 @@
-# LIST YOUR PYTHON PACKAGES HERE
-
-#For state estimator
-#scipy
-filterpy
