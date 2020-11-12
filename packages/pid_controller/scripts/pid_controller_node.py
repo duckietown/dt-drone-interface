@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import tf
 import sys
@@ -142,7 +142,7 @@ class PIDController(object):
         if self.desired_position != self.last_desired_position:
             # the drone is moving between desired positions
             self.moving = True
-            print 'moving'
+            print('moving')
 
     def desired_twist_callback(self, msg):
         """ Update the desired twist """
@@ -152,7 +152,7 @@ class PIDController(object):
         self.desired_yaw_velocity = msg.angular.z
         self.desired_velocity_start_time = None
         self.desired_yaw_velocity_start_time = None
-        print "Desired_velocity", self.desired_velocity
+        print("Desired_velocity", self.desired_velocity)
         if self.path_planning:
             self.calculate_travel_time()
 
@@ -170,7 +170,7 @@ class PIDController(object):
         if self.position_control:
             self.desired_position = self.current_position
         if (self.position_control != self.last_position_control):
-            print "Position Control", self.position_control
+            print("Position Control", self.position_control)
             self.last_position_control = self.position_control
 
     def reset_callback(self, empty):
@@ -196,7 +196,7 @@ class PIDController(object):
                         self.pid_error -= self.velocity_error * 100
                     else:
                         self.moving = False
-                        print 'not moving'
+                        print('not moving')
             else:
                 self.position_control_pub.publish(False)
 
@@ -324,7 +324,7 @@ class PIDController(object):
 
     def ctrl_c_handler(self, signal, frame):
         """ Gracefully handles ctrl-c """
-        print 'Caught ctrl-c\n Stopping Controller'
+        print('Caught ctrl-c\n Stopping Controller')
         sys.exit()
 
     def publish_cmd(self, cmd):
@@ -379,7 +379,7 @@ def main(ControllerClass):
     signal.signal(signal.SIGINT, pid_controller.ctrl_c_handler)
     # set the loop rate (Hz)
     loop_rate = rospy.Rate(60)
-    print 'PID Controller Started'
+    print('PID Controller Started')
     while not rospy.is_shutdown():
         pid_controller.heartbeat_pub.publish(Empty())
 
@@ -421,25 +421,25 @@ def main(ControllerClass):
                 pid_controller.pid.pitch_low.init_i = pid_controller.pid.pitch_low._i
                 # Uncomment below statements to print the converged values.
                 # Make sure verbose = 0 so that you can see these values
-                print 'roll_low.init_i', pid_controller.pid.roll_low.init_i
-                print 'pitch_low.init_i', pid_controller.pid.pitch_low.init_i
+                print('roll_low.init_i', pid_controller.pid.roll_low.init_i)
+                print('pitch_low.init_i', pid_controller.pid.pitch_low.init_i)
 
         if verbose >= 2:
             if pid_controller.position_control:
-                print 'current position:', pid_controller.current_position
-                print 'desired position:', pid_controller.desired_position
-                print 'position error:', pid_controller.position_error
+                print('current position:', pid_controller.current_position)
+                print('desired position:', pid_controller.desired_position)
+                print('position error:', pid_controller.position_error)
             else:
-                print 'current velocity:', pid_controller.current_velocity
-                print 'desired velocity:', pid_controller.desired_velocity
-                print 'velocity error:  ', pid_controller.velocity_error
-            print 'pid_error:       ', pid_controller.pid_error
-            print 'r,p,y,t:', fly_command[-1]
-            print 'throttle_low._i', pid_controller.pid.throttle_low._i
-            print 'throttle._i', pid_controller.pid.throttle._i
+                print('current velocity:', pid_controller.current_velocity)
+                print('desired velocity:', pid_controller.desired_velocity)
+                print('velocity error:  ', pid_controller.velocity_error)
+            print('pid_error:       ', pid_controller.pid_error)
+            print('r,p,y,t:', fly_command[-1])
+            print('throttle_low._i', pid_controller.pid.throttle_low._i)
+            print('throttle._i', pid_controller.pid.throttle._i)
         if verbose >= 1:
             error = pid_controller.pid_error
-            print "Errors: Z: ", str(error.z)[:5], "\t X ", str(error.x)[:5], "\t Y ", str(error.y)[:5], "\t\t\t\r",
+            print("Errors: Z: ", str(error.z)[:5], "\t X ", str(error.x)[:5], "\t Y ", str(error.y)[:5], "\t\t\t\r", end=' ')
 
         loop_rate.sleep()
 

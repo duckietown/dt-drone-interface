@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy
 from sensor_msgs.msg import Joy
@@ -208,78 +208,79 @@ def joy_callback(data):
     #    print "mode", mode
     #    modepub.publish(mode)
     if data.buttons[0] == 1:
-        print "button", 0
-        print "publishResetTransform()"
+        print("button", 0)
+        print("publishResetTransform()")
         publishResetTransform()
 
     if data.buttons[6] == 1:
-        print "botton", 6
-        print "publishToPosition()"
+        print("botton", 6)
+        print("publishToPosition()")
         publishToPosition()
 
     if data.buttons[7] == 1:
-        print "button", 7
-        print "publishToVelocity()"
+        print("button", 7)
+        print("publishToVelocity()")
         publishToVelocity()
 
     if data.buttons[4] == 1:
-        print "button", 4
-        print "publishToggleMap()"
+        print("button", 4)
+        print("publishToggleMap()")
         publishToggleMap()
 
     if data.buttons[1] == 1:
-        print "button", 1
-        print "publishArm()"
+        print("button", 1)
+        print("publishArm()")
         publishArm()
 
     if data.buttons[2] == 1:
-        print "button", 2
-        print "publishDisarm()"
+        print("button", 2)
+        print("publishDisarm()")
         publishDisarm()
 
     if data.buttons[3] == 1:
-        print "button", 3
-        print "publishTakeoff()"
+        print("button", 3)
+        print("publishTakeoff()")
         publishTakeoff()
 
     if data.buttons[4] == 1:
-        print "button", 4
-        print "publishYawLeft()"
+        print("button", 4)
+        print("publishYawLeft()")
         publishYawLeft()
 
     if data.buttons[5] == 1:
-        print "button", 5
-        print "publishYawRight()"
+        print("button", 5)
+        print("publishYawRight()")
         publishYawRight()
 
     if np.abs(data.axes[0]) >= 0.3:
-        print "Axes 0"
-	value = data.axes[0]
-        if data.axes[0] > 0:
-            print "publishTranslateLeft(value), value: ", data.axes[0]
-            publishTranslateLeft(value)
-        else:
-            print "publishTranslateRight(value), value: ", data.axes[0]
-            publishTranslateRight(value)
+        print("Axes 0")
+    value = data.axes[0]
+    
+    if data.axes[0] > 0:
+        print("publishTranslateLeft(value), value: ", data.axes[0])
+        publishTranslateLeft(value)
+    else:
+        print("publishTranslateRight(value), value: ", data.axes[0])
+        publishTranslateRight(value)
 
     if np.abs(data.axes[1]) >= 0.3:
-        print "Axes 1"
+        print("Axes 1")
         value = data.axes[1]
         if value > 0:
-            print "publishTranslateForward(value), value: ", value
+            print("publishTranslateForward(value), value: ", value)
             publishTranslateForward(value)
         else:
-            print "publishTranslateBackward(value), value: ", value
+            print("publishTranslateBackward(value), value: ", value)
             publishTranslateBackward(value)
 
     if np.abs(data.axes[3]) >= 0.3:
-        print "Axes 3"
+        print("Axes 3")
         value = data.axes[3]
         if value > 0:
-            print "publishTranslateUp(value), value: ", value
+            print("publishTranslateUp(value), value: ", value)
             publishTranslateUp(value)
         else:
-            print "publishTranslateDown(value), value: ", value
+            print("publishTranslateDown(value), value: ", value)
             publishTranslateDown(value)
     '''
     #elif data.buttons[6] == 1:
@@ -318,6 +319,7 @@ def joy_callback(data):
     #       mode.y_velocity = 0
     #       mode.z_velocity = 0
     '''
+    
 def main():
     node_name = os.path.splitext(os.path.basename(__file__))[0]
     rospy.init_node(node_name)

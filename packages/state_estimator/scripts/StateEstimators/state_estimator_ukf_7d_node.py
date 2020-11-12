@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # ROS imports
 import rospy
@@ -90,7 +90,7 @@ class UKFStateEstimator7D(object):
         Initialize ROS-related objects, e.g., the node, subscribers, etc.
         """
         self.node_name = os.path.splitext(os.path.basename(__file__))[0]
-        print 'Initializing {} node...'.format(self.node_name)
+        print('Initializing {} node...'.format(self.node_name))
         rospy.init_node(self.node_name)
         
         # Create the publisher to publish state estimates
@@ -219,7 +219,7 @@ class UKFStateEstimator7D(object):
         
     def print_notice_if_first(self):
         if not self.printed_filter_start_notice:
-            print 'Starting filter'
+            print('Starting filter')
             self.printed_filter_start_notice = True
         
     def imu_data_callback(self, data):
@@ -337,7 +337,7 @@ class UKFStateEstimator7D(object):
         self.in_callback = False
             
     def check_if_ready_to_filter(self):
-        print "checking ready to filter"
+        print("checking ready to filter")
         self.ready_to_filter = (self.got_altitude and self.got_imu)
                         
     def publish_current_state(self):
@@ -516,9 +516,9 @@ def main():
         se.start_loop()
     finally:
         # Upon termination of this script, print out a helpful message
-        print '{} node terminating.'.format(se.node_name)
-        print 'Most recent state vector:'
-        print se.ukf.x
+        print('{} node terminating.'.format(se.node_name))
+        print('Most recent state vector:')
+        print(se.ukf.x)
         # print 'Most recent state covariance matrix:'
         # print se.ukf.P
         

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #The hearbeat that this node publishes is a signal to the drone that
 #you can still make contact with the drone. therefore in order for this to work
