@@ -110,7 +110,8 @@ class StateEstimator(object):
     def start_estimator_subprocess_cmds(self):
         cmd = self.process_cmds_dict[self.primary_estimator]
         cmd = self.append_throttle_flags(cmd, self.primary_estimator)
-        process_cmds = [cmd]
+        process_cmds = [cmd] 
+        ns = rospy.get_namespace()
         if self.primary_estimator == 'ukf2d':
             # We want the EMA to provide x and y position and velocity
             # estimates, for example, to supplement the 2D UKF's z position and
@@ -120,7 +121,7 @@ class StateEstimator(object):
             rospy.Subscriber(self.ema_topic, Odometry, self.ema_helper_callback)
             rospy.Subscriber(self.ukf_topics[2], Odometry, self.state_callback)
         elif self.primary_estimator == 'ukf7d':
-            rospy.Subscriber("/drone2/"+self.ukf_topics[7], Odometry, self.state_callback)
+            rospy.Subscriber(ns+self.ukf_topics[7], Odometry, self.state_callback)
         elif self.primary_estimator == 'ukf12d':
             rospy.Subscriber(self.ukf_topics[12], Odometry, self.state_callback)
         elif self.primary_estimator == 'ema':
@@ -156,6 +157,7 @@ class StateEstimator(object):
                      'ukf12d' in self.estimators) and
                     ('simulator' in self.estimators or 'mocap' in self.estimators))
         if do_setup:
+            
             self.last_ground_truth_height = None
             self.last_ukf_height = None
             self.ukf_stats_pub = rospy.Publisher('ukf_stats', UkfStats, queue_size=1,
@@ -374,5 +376,8 @@ def main():
         print('Done.')
 
 
+
 if __name__ == "__main__":
     main()
+
+

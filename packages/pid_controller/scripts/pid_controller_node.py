@@ -152,7 +152,7 @@ class PIDController(object):
         self.desired_yaw_velocity = msg.angular.z
         self.desired_velocity_start_time = None
         self.desired_yaw_velocity_start_time = None
-        print("Desired_velocity", self.desired_velocity)
+        #print("Desired_velocity", self.desired_velocity)
         if self.path_planning:
             self.calculate_travel_time()
 
@@ -421,8 +421,9 @@ def main(ControllerClass):
                 pid_controller.pid.pitch_low.init_i = pid_controller.pid.pitch_low._i
                 # Uncomment below statements to print the converged values.
                 # Make sure verbose = 0 so that you can see these values
-                print('roll_low.init_i', pid_controller.pid.roll_low.init_i)
-                print('pitch_low.init_i', pid_controller.pid.pitch_low.init_i)
+                if verbose >= 2:
+                    print('roll_low.init_i', pid_controller.pid.roll_low.init_i)
+                    print('pitch_low.init_i', pid_controller.pid.pitch_low.init_i)
 
         if verbose >= 2:
             if pid_controller.position_control:
