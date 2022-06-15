@@ -6,6 +6,7 @@ from std_msgs.msg import Empty
 from sensor_msgs.msg import Range
 from geometry_msgs.msg import Quaternion
 from sensor_msgs.msg import Imu
+from duckietown.dtros import DTROS, NodeType
 
 import tf
 
@@ -24,19 +25,30 @@ import tf
 
 #the purpose of this is to stop one sensor over a watchtower
 #or other discontinous terrain to throw off the height estimation
-class rangefinder_average():
+class RangeFinderAverageNode(DTROS):
 
-    def __init__(self, publisher):
-        self.ranges = np.array([0.0,0.0,0.0,0.0])
+    def __init__(self, node_name):
+
+        # Initialize the DTROS parent class
+        super(RangeFinderAverageNode, self).__init__(node_name=node_name, node_type=NodeType.PERCEPTION)
+
+        self.ranges = np.array([0.0])
         self.range_index = 0
-        self.publisher = publisher
-        self.max_range = None
-        self.min_range = None
+        self.max_range = 0.0
+        self.min_range = 0.0
         self.header = None #todo cread frame ID for this header
 
-        self.range_angle = 0 
-        #angle between the direction the range finder is pointed (normal to the drone)
-        #and the gravity vector (towards the ground)
+        # by default: angle between the direction the range finder is pointed (normal to the drone)
+        #             and the gravity vector (towards the ground)
+        self.range_angle = 0
+
+        self._sub_imu = rospy.Subscriber('imu', Imu, self.update_angle)
+        self._sub_tof = rospy.Subscriber('front_center_tof_driver_node/range', Range, self.callback)
+
+        self._pub = rospy.Publisher('altitude_node', Range, queue_size=1)
+        self._heartbeat = rospy.Publisher('heartbeat/altitude_node', Empty, queue_size=1)
+
+        self._timer = rospy.Timer(rospy.Duration(1.0 / 100.0), self.cb_timer)
 
     def update_angle(self, imu_msg):
 
@@ -50,22 +62,24 @@ class rangefinder_average():
         # with gravity, and therefore what factor to multiply the rangefinder data to convert
         # it to distance off the ground.
 
-
         base = np.array([0,0,1,0])
         quat = imu_msg.orientation
         quaternion = np.array([quat.x, quat.y, quat.z, quat.w])
         quaternion_conjugate = np.array([-quat.x, -quat.y, -quat.z, quat.w])
 
-        new = tf.transformations.quaternion_multiply(quaternion, \
-              tf.transformations.quaternion_multiply(base, quaternion_conjugate))
+        new = tf.transformations.quaternion_multiply(
+            quaternion,
+            tf.transformations.quaternion_multiply(
+                base,
+                quaternion_conjugate,
+            ),
+        )
 
-    
         self.range_angle = np.arccos(np.dot(new[0:3], base[0:3]))
 
-
     def increment_index(self):
-        self.range_index +=1
-        self.range_index = self.range_index % 4
+        self.range_index += 1
+        self.range_index = self.range_index % len(self.ranges)
 
     def return_median(self):
         return np.median(self.ranges)
@@ -82,43 +96,21 @@ class rangefinder_average():
             self.max_range = range_msg.max_range
         self.min_range = range_msg.min_range
         self.header = range_msg.header
-        self.out_message()
 
-    def out_message(self):
+    def cb_timer(self, event=None):
         msg = Range()
+
         msg.max_range = self.max_range
         msg.min_range = self.min_range
         msg.range = self.return_median()
-        msg.header = self.header
-        self.publisher.publish(msg)
-        self.publisher.heartbeat.publish(Empty())
-	#print "Last four ranges recived: ", np.around(self.ranges, 4), "\t\t\t\r"
+        if self.header is not None:
+            msg.header = self.header
 
-
-
-
-
-def main():
-    node_name = "altitude_node"
-    rospy.init_node(node_name)
-
-    rangefinder_pub = rospy.Publisher('altitude_node', Range, queue_size=1)
-    rangefinder_pub.heartbeat = rospy.Publisher('heartbeat/altitude_node', Empty, queue_size=1)
-
-    rangefinder = rangefinder_average(rangefinder_pub)
-
-
-    rospy.Subscriber('imu', Imu, rangefinder.update_angle)
-    rospy.Subscriber('lidar_sensor_node_1', Range, rangefinder.callback)
-    rospy.Subscriber('lidar_sensor_node_2', Range, rangefinder.callback)
-    rospy.Subscriber('lidar_sensor_node_3', Range, rangefinder.callback)
-    rospy.Subscriber('lidar_sensor_node_4', Range, rangefinder.callback)
-    rospy.Subscriber('infrared_sensor_node', Range, rangefinder.callback)
-    r = rospy.Rate(100)
-    i = 0
-    rospy.spin()
-
+        self._pub.publish(msg)
+        self._heartbeat.publish(Empty())
+        #print "Last four ranges recived: ", np.around(self.ranges, 4), "\t\t\t\r"
 
 
 if __name__ == "__main__":
-    main()
+    range_finder_node = RangeFinderAverageNode("altitude_node")
+    rospy.spin()

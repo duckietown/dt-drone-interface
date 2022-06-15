@@ -337,9 +337,9 @@ class UKFStateEstimator7D(object):
         self.in_callback = False
             
     def check_if_ready_to_filter(self):
-        print("checking ready to filter")
         self.ready_to_filter = (self.got_altitude and self.got_imu)
-                        
+        # print(f"ready to filter? {self.ready_to_filter}")
+
     def publish_current_state(self):
         """
         Publish the current state estimate and covariance from the UKF. This is

@@ -337,7 +337,7 @@ class PIDController(object):
         self.cmdpub.publish(msg)
 
 
-def main(ControllerClass):
+def main(controller_class):
     # Verbosity between 0 and 2, 2 is most verbose
     verbose = 1
 
@@ -348,11 +348,12 @@ def main(ControllerClass):
 
     # Parameters:
     #############
-    max_range= rospy.get_param("maxrange")
-    max_range= float(max_range)
+    # max_range = rospy.get_param("maxrange")
+    # max_range = float(max_range)
+    max_range = 0.5
 
     # create the PIDController object
-    pid_controller = ControllerClass(max_range)
+    pid_controller = controller_class(max_range)
 
     # Publishers
     ############

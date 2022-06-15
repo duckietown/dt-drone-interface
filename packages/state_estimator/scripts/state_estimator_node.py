@@ -351,7 +351,8 @@ def main():
                               'loop of the UKF (default: 30)'))
                               
     args = parser.parse_args(rospy.myargv()[1:])
-    print("state estimator args", args) 
+    print("state estimator args", args)
+    se = None
     try:
         se = StateEstimator(primary=args.primary,
                             others=args.others,
@@ -370,9 +371,10 @@ def main():
         # entered in stdin, it seems that the subprocesses also get the Ctrl-C
         # input and are terminating based on KeyboardInterrupt
         print('Terminating subprocess calls...')
-        for process_name, process in se.processes:
-            print('Terminating:', process_name)
-            process.terminate()
+        if se is not None:
+            for process_name, process in se.processes:
+                print('Terminating:', process_name)
+                process.terminate()
         print('Done.')
 
 
