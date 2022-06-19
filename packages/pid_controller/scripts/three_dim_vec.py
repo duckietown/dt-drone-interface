@@ -1,12 +1,14 @@
 import numpy as np
+from dataclasses import dataclass
 
+
+@dataclass
 class ThreeDimVec(object):
-    ''' Struct to store three variables referenced as x,y,z'''
-    # This should be turned into a data class with the next python 3 release
-    def __init__(self, x=0.0, y=0.0 ,z=0.0):
-        self.x = x
-        self.y = y
-        self.z = z
+    """ Struct to store three variables referenced as x,y,z """
+    x: float = 0.0
+    y: float = 0.0
+    z: float = 0.0
+
     def __str__(self):
         return "x: %f, y: %f, z: %f" % (self.x, self.y, self.z)
 
@@ -35,42 +37,35 @@ class ThreeDimVec(object):
         return np.sqrt(self.x * self.x + self.y * self.y)
 
 
-# TODO EDIT ALL DATA DESCRIPTIONS
 class Position(ThreeDimVec):
-    ''' Struct to store postion components x,y,yaw
-    x : the x position
-    y : the y position
-    yaw : the yaw value
-    '''
+    """ Struct to store position components x,y,z"""
     def __init__(self, x=0.0, y=0.0, z=0.0):
         super(Position, self).__init__(x,y,z)
 
+
 class Velocity(ThreeDimVec):
-    ''' Struct to store velocity components vx,vy,vz
-    vx : the x velocity
-    vy : the y velocity
-    vz : the z velocity
-    '''
+    """ Struct to store velocity components x,y,z"""
     def __init__(self, x=0.0, y=0.0, z=0.0):
         super(Velocity, self).__init__(x,y,z)
 
+
 class Error(ThreeDimVec):
-    ''' Struct to store error which is in the form vx,vy,z
-    x : the x velocity error
-    y : the y velocity error
-    z  : the z position error
-    '''
+    """ Struct to store 3D errors which is in the form x,y,z"""
     def __init__(self, x=0.0, y=0.0, z=0.0):
         super(Error, self).__init__(x,y,z)
 
+
 class RPY(ThreeDimVec):
-    ''' Struct to store the roll, pitch, and yaw values which is in the form
-    r : roll
-    p : pitch
-    y : kp_yaw
-    '''
+    """ Struct to store the roll, pitch, in x,y,z"""
     def __init__(self, r=0.0, p=0.0, y=0.0):
         super(RPY, self).__init__(r,p,y)
         self.r = self.x
         self.p = self.y
         self.y = self.z
+
+    def get_rpy(self):
+        # the base class functions are not defined for rpy
+        self.r = self.x
+        self.p = self.y
+        self.y = self.z
+        return self.r, self.p, self.y

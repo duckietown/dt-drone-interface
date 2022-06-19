@@ -339,7 +339,9 @@ class PIDController(object):
 
 def main(controller_class):
     # Verbosity between 0 and 2, 2 is most verbose
-    verbose = 1
+    verbose = 0
+    # verbose = 1
+    # verbose = 2
 
     # ROS Setup
     ###########
@@ -371,8 +373,6 @@ def main(controller_class):
     rospy.Subscriber('position_control', Bool, pid_controller.position_control_callback)
     rospy.Subscriber('reset_transform', Empty, pid_controller.reset_callback)
     rospy.Subscriber('camera_node/lost', Bool, pid_controller.lost_callback)
-
-
 
     # Non-ROS Setup
     ###############
@@ -418,8 +418,8 @@ def main(controller_class):
             # NOTE: do not store the throttle_low.init_i or else the drone will
             # take off abruptly after the first flight
             elif pid_controller.desired_mode == 0: #'DISARMED'
-                pid_controller.pid.roll_low.init_i = pid_controller.pid.roll_low._i
-                pid_controller.pid.pitch_low.init_i = pid_controller.pid.pitch_low._i
+                pid_controller.pid.roll_low.init_i = pid_controller.pid.roll_low.integral
+                pid_controller.pid.pitch_low.init_i = pid_controller.pid.pitch_low.integral
                 # Uncomment below statements to print the converged values.
                 # Make sure verbose = 0 so that you can see these values
                 if verbose >= 2:
@@ -436,12 +436,12 @@ def main(controller_class):
                 print('desired velocity:', pid_controller.desired_velocity)
                 print('velocity error:  ', pid_controller.velocity_error)
             print('pid_error:       ', pid_controller.pid_error)
-            print('r,p,y,t:', fly_command[-1])
-            print('throttle_low._i', pid_controller.pid.throttle_low._i)
-            print('throttle._i', pid_controller.pid.throttle._i)
+            print('r,p,y,t:', fly_command)
+            print('throttle_low._i', pid_controller.pid.throttle_low.integral)
+            print('throttle._i', pid_controller.pid.throttle.integral)
         if verbose >= 1:
             error = pid_controller.pid_error
-            print("Errors: Z: ", str(error.z)[:5], "\t X ", str(error.x)[:5], "\t Y ", str(error.y)[:5], "\t\t\t\r", end=' ')
+            print("Errors: Z: ", str(error.z)[:5], "\t X ", str(error.x)[:5], "\t Y ", str(error.y)[:5])
 
         loop_rate.sleep()
 

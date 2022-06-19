@@ -48,7 +48,7 @@ class RangeFinderAverageNode(DTROS):
         self._pub = rospy.Publisher('altitude_node', Range, queue_size=1)
         self._heartbeat = rospy.Publisher('heartbeat/altitude_node', Empty, queue_size=1)
 
-        self._timer = rospy.Timer(rospy.Duration(1.0 / 100.0), self.cb_timer)
+        self._timer = rospy.Timer(rospy.Duration(1.0 / 15.0), self.cb_timer)
 
     def update_angle(self, imu_msg):
 
