@@ -8,9 +8,11 @@
         <arg name="param_file_name" value="$(arg param_file_name)"/>
     </include>
 
+ <!-- 
     <include file="$(find pid_controller)/launch/pid_controller_node.launch">
         <arg name="veh" value="$(arg veh)"/>
     </include>
+-->
 
     <include file="$(find state_estimator)/launch/state_estimator_node.launch">
         <arg name="veh" value="$(arg veh)"/>

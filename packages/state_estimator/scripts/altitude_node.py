@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from email import header
 import os
 import rospy
 import numpy as np
@@ -42,13 +43,13 @@ class RangeFinderAverageNode(DTROS):
         #             and the gravity vector (towards the ground)
         self.range_angle = 0
 
-        self._sub_imu = rospy.Subscriber('imu', Imu, self.update_angle)
-        self._sub_tof = rospy.Subscriber('front_center_tof_driver_node/range', Range, self.callback)
+        self._sub_imu = rospy.Subscriber('imu', Imu, self.update_angle, queue_size=1) # do not increase the queue size
+        self._sub_tof = rospy.Subscriber('altitude_tof_driver_node/range', Range, self.callback, queue_size=1) # do not increase the queue size
 
-        self._pub = rospy.Publisher('altitude_node', Range, queue_size=1)
+        self._pub = rospy.Publisher('altitude_node', Range, queue_size=1) # is not tacking into account the center of mass of the drone
         self._heartbeat = rospy.Publisher('heartbeat/altitude_node', Empty, queue_size=1)
 
-        self._timer = rospy.Timer(rospy.Duration(1.0 / 15.0), self.cb_timer)
+        self._timer = rospy.Timer(rospy.Duration(1.0 / 30.0), self.cb_timer)
 
     def update_angle(self, imu_msg):
 

@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 
 # ROS imports
+import os
+import argparse
+import numpy as np
+from filterpy.kalman import MerweScaledSigmaPoints
+from filterpy.kalman import UnscentedKalmanFilter
 import rospy
 import tf
 from sensor_msgs.msg import Imu, Range
@@ -14,13 +19,8 @@ from geometry_msgs.msg import PoseStamped, TwistStamped
 # through ssh)
 import matplotlib
 matplotlib.use('Pdf')
-from filterpy.kalman import UnscentedKalmanFilter
-from filterpy.kalman import MerweScaledSigmaPoints
 
 # Other imports
-import numpy as np
-import argparse
-import os
 
 
 class UKFStateEstimator7D(object):
@@ -33,7 +33,7 @@ class UKFStateEstimator7D(object):
     # TODO: Make a reference to the UKF math document that is being written up,
     #       once it is in a complete enough state and can be placed in a shared
     #       location.
-    
+
     def __init__(self, loop_hz, altitude_throttled=False, imu_throttled=False, optical_flow_throttled=False, camera_pose_throttled=False):
         # self.ready_to_filter is False until we get initial measurements in
         # order to be able to initialize the filter's state vector x and
@@ -45,13 +45,13 @@ class UKFStateEstimator7D(object):
         # self.got_optical_flow = False
         self.got_imu = False
         self.loop_hz = loop_hz
-        
+
         self.altitude_topic_str = 'altitude_node'
         self.imu_topic_str = 'imu'
         self.optical_flow_topic_str = 'camera_node/twist'
         self.camera_pose_topic_str = 'camera_node/pose'
         throttle_suffix = '_throttle'
-        
+
         if altitude_throttled:
             self.altitude_topic_str += throttle_suffix
         if imu_throttled:
@@ -60,26 +60,26 @@ class UKFStateEstimator7D(object):
             self.optical_flow_topic_str += throttle_suffix
         if camera_pose_throttled:
             self.camera_pose_topic_str += throttle_suffix
-            
+
         # Localization wants angular velocities, so take from IMU and republish
         # in the state message
         self.angular_velocity = None
-            
+
         self.in_callback = False
 
         self.initialize_ukf()
-        
+
         # The last time that we received an input and formed a prediction with
         # the state transition function
         self.last_state_transition_time = None
-        
+
         # Time in seconds between consecutive state transitions, dictated by
         # when the inputs come in
         self.dt = None
-        
+
         # Initialize the last control input as 0 m/s^2 along each axis
         self.last_control_input = np.array([0.0, 0.0, 0.0])
-        
+
         self.last_measurement_vector = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
         # ros
@@ -92,20 +92,20 @@ class UKFStateEstimator7D(object):
 
         # Subscribe to topics to which the drone publishes in order to get raw
         # data from sensors, which we can then filter
-        self._imu_sub = rospy.Subscriber(self.imu_topic_str, Imu, self.imu_data_callback, queue_size=1)
+        self._imu_sub = rospy.Subscriber(
+            self.imu_topic_str, Imu, self.imu_data_callback, queue_size=1)
         self._altitude_sub = rospy.Subscriber(
             self.altitude_topic_str, Range, self.altitude_data_callback, queue_size=1)
-        self._of_sub = rospy.Subscriber(
-            self.optical_flow_topic_str, TwistStamped, self.optical_flow_data_callback)
-        self._cam_pose_sub = rospy.Subscriber(
-            self.camera_pose_topic_str, PoseStamped, self.camera_pose_data_callback)
+
+        self.slope = 0
+        self.inc = 0.01
 
     def initialize_ukf(self):
         """
         Initialize the parameters of the Unscented Kalman Filter (UKF) that is
         used to estimate the state of the drone.
         """
-        
+
         # Number of state variables being tracked
         self.state_vector_dim = 7
         # The state vector consists of the following column vector.
@@ -117,7 +117,7 @@ class UKFStateEstimator7D(object):
         #  [y_vel],
         #  [z_vel],
         #  [yaw]]
-        
+
         # Number of measurement variables that the drone receives
         self.measurement_vector_dim = 6
         # The measurement variables consist of the following vector:
@@ -127,7 +127,7 @@ class UKFStateEstimator7D(object):
         #  [x_vel],
         #  [y_vel],
         #  [yaw]]
-        
+
         # Function to generate sigma points for the UKF
         # TODO: Modify these sigma point parameters appropriately. Currently
         #       just guesses
@@ -145,8 +145,8 @@ class UKFStateEstimator7D(object):
                                          dt=1.0,
                                          hx=self.measurement_function,
                                          fx=self.state_transition_function,
-                                         points=sigma_points)#
-                                         #compute_log_likelihood=False) #removed this line akm
+                                         points=sigma_points)
+        # compute_log_likelihood=False) #removed this line akm
         self.initialize_ukf_matrices()
 
     def initialize_ukf_matrices(self):
@@ -157,11 +157,11 @@ class UKFStateEstimator7D(object):
         # TODO: Tune these initial values appropriately. Currently these are
         #       just guesses
         self.ukf.P = np.diag([0.1, 0.1, 0.1, 0.2, 0.2, 0.2, 0.0005])
-        
+
         # Initialize the process noise covariance matrix Q:
         # TODO: Tune appropriately. Currently just a guess
         self.ukf.Q = np.diag([0.01, 0.01, 0.01, 1.0, 1.0, 1.0, 0.1])*0.005
-        
+
         # Initialize the measurement covariance matrix R
         # IR slant range variance (m^2), determined experimentally in a static
         # setup with mean range around 0.335 m:
@@ -171,12 +171,12 @@ class UKFStateEstimator7D(object):
         # variance of 0.05^2 = 0.0025
         self.measurement_cov_camera_pose = np.diag([0.0025, 0.0025, 0.0003])
         self.ukf.R = np.diag([2.2221e-05, 0.0025, 0.0025, 0.01, 0.01, 0.0003])
-                
+
     def update_input_time(self, msg):
         """
         Update the time at which we have received the most recent input, based
         on the timestamp in the header of a ROS message
-        
+
         msg : a ROS message that includes a header with a timestamp that
               indicates the time at which the respective input was originally
               recorded
@@ -189,21 +189,21 @@ class UKFStateEstimator7D(object):
         # Set the current time at which we just received an input
         # to be the last input time
         self.last_state_transition_time = new_time
-        
+
     def initialize_input_time(self, msg):
         """
         Initialize the input time (self.last_state_transition_time) based on the
         timestamp in the header of a ROS message. This is called before we start
         filtering in order to attain an initial time value, which enables us to
         then compute a time interval self.dt by calling self.update_input_time()
-        
+
         msg : a ROS message that includes a header with a timestamp
         """
         self.last_time_secs = msg.header.stamp.secs
         self.last_time_nsecs = msg.header.stamp.nsecs
         self.last_state_transition_time = (self.last_time_secs +
                                            self.last_time_nsecs*1e-9)
-        
+
     def ukf_predict(self):
         """
         Compute the prior for the UKF based on the current state, a control
@@ -211,18 +211,18 @@ class UKFStateEstimator7D(object):
         """
         # print(self.dt, self.last_control_input)
         self.ukf.predict(dt=self.dt, u=self.last_control_input)
-        
+
     def print_notice_if_first(self):
         if not self.printed_filter_start_notice:
             print('Starting filter')
             self.printed_filter_start_notice = True
-        
+
     def imu_data_callback(self, data):
-        #print "\n imu_data_callback\n"
+        # print "\n imu_data_callback\n"
         """
         Handle the receipt of an Imu message. Only take the linear acceleration
         along the z-axis.
-        
+
         """
         if self.in_callback:
             return
@@ -237,9 +237,9 @@ class UKFStateEstimator7D(object):
             self.got_imu = True
             self.check_if_ready_to_filter()
         self.in_callback = False
-                        
+
     def altitude_data_callback(self, data):
-        #print "\n altitude_data_callback\n"
+        # print "\n altitude_data_callback\n"
         """
         Handle the receipt of a Range message from the IR sensor.
         """
@@ -269,14 +269,14 @@ class UKFStateEstimator7D(object):
             self.got_altitude = True
             self.check_if_ready_to_filter()
         self.in_callback = False
-        
+
     def optical_flow_data_callback(self, data):
         """
         Handle the receipt of a TwistStamped message from optical flow.
         The message parts that we will be using:
             - x velocity (m/s)
             - y velocity (m/s)
-        
+
         This method PREDICTS with the most recent control input and UPDATES.
         """
         if self.in_callback:
@@ -299,7 +299,7 @@ class UKFStateEstimator7D(object):
             # self.got_optical_flow = True
             self.check_if_ready_to_filter()
         self.in_callback = False
-        
+
     def camera_pose_data_callback(self, data):
         """
         Handle the receipt of a PoseStamped message from camera data.
@@ -307,17 +307,17 @@ class UKFStateEstimator7D(object):
             - x (meters)
             - y (meters)
             - yaw (radians)
-        
+
         This method PREDICTS with the most recent control input and UPDATES.
         """
         if self.in_callback:
             return
         self.in_callback = True
         _, _, yaw = tf.transformations.euler_from_quaternion(
-                                                      [data.pose.orientation.x,
-                                                       data.pose.orientation.y,
-                                                       data.pose.orientation.z,
-                                                       data.pose.orientation.w])
+            [data.pose.orientation.x,
+             data.pose.orientation.y,
+             data.pose.orientation.z,
+             data.pose.orientation.w])
         if self.ready_to_filter:
             self.update_input_time(data)
             self.last_measurement_vector[1] = data.pose.position.x
@@ -338,7 +338,7 @@ class UKFStateEstimator7D(object):
             # self.got_camera_pose = True
             self.check_if_ready_to_filter()
         self.in_callback = False
-            
+
     def check_if_ready_to_filter(self):
         self.ready_to_filter = (self.got_altitude and self.got_imu)
         # print(f"ready to filter? {self.ready_to_filter}")
@@ -358,11 +358,11 @@ class UKFStateEstimator7D(object):
         state_msg.header.stamp.secs = self.last_time_secs
         state_msg.header.stamp.nsecs = self.last_time_nsecs
         state_msg.header.frame_id = 'global'
-        
+
         # TODO: Consider using roll and pitch values directly from the IMU, as
         #       the IMU implements its own filter on attitude
         quaternion = self.get_quaternion_from_yaw(self.ukf.x[6])
-        
+
         # Get the current state estimate from self.ukf.x, and fill the rest of
         # the message with NaN
         state_msg.pose.pose.position.x = self.ukf.x[0]
@@ -376,7 +376,7 @@ class UKFStateEstimator7D(object):
         state_msg.twist.twist.linear.y = self.ukf.x[4]
         state_msg.twist.twist.linear.z = self.ukf.x[5]
         state_msg.twist.twist.angular = self.angular_velocity
-        
+
         # Prepare covariance matrices
         # TODO: Finish populating these matrices, if deemed necessary
         # 36-element array, in a row-major order, according to ROS msg docs
@@ -384,20 +384,20 @@ class UKFStateEstimator7D(object):
         # twist_cov_mat = np.full((36,), np.nan)
         pose_cov_mat = np.full((36,), 0.0)
         twist_cov_mat = np.full((36,), 0.0)
-        pose_cov_mat[14] = self.ukf.P[2, 2] # z variance
-        twist_cov_mat[14] = self.ukf.P[5, 5] # z velocity variance
-        
+        pose_cov_mat[14] = self.ukf.P[2, 2]  # z variance
+        twist_cov_mat[14] = self.ukf.P[5, 5]  # z velocity variance
+
         # Add covariances to message
         state_msg.pose.covariance = pose_cov_mat
         state_msg.twist.covariance = twist_cov_mat
-        
+
         self.state_pub.publish(state_msg)
-        
+
     def get_quaternion_from_yaw(self, yaw):
         return tf.transformations.quaternion_from_euler(0.0,
                                                         0.0,
                                                         yaw)
-        
+
     def apply_quaternion_vector_rotation(self, original_vector, yaw):
         """
         Rotate a vector from the drone's body frame to the global frame using
@@ -409,10 +409,10 @@ class UKFStateEstimator7D(object):
         # frame, so take the quaternion's inverse by negating its real
         # component (w)
         quat_global_to_body = self.get_quaternion_from_yaw(yaw)
-        quat_body_to_global = list(quat_global_to_body) # copy the quaternion
+        quat_body_to_global = list(quat_global_to_body)  # copy the quaternion
         quat_body_to_global[3] = -quat_body_to_global[3]
         original_vector_as_quat = list(original_vector)
-        original_vector_as_quat.append(0.0) # vector as quaternion with w=0
+        original_vector_as_quat.append(0.0)  # vector as quaternion with w=0
         # Apply quaternion rotation on a vector: q*v*q', where q is the rotation
         # quaternion, v is the vector (a "pure" quaternion with w=0), and q' is
         # the conjugate of the quaternion q
@@ -428,7 +428,7 @@ class UKFStateEstimator7D(object):
         """
         The state transition function to compute the prior in the prediction
         step, propagating the state to the next time step.
-        
+
         x : current state. A NumPy array
         dt : time step. A float
         u : control input. A NumPy array
@@ -449,7 +449,7 @@ class UKFStateEstimator7D(object):
         Transform the state x into measurement space. In this simple model, we
         assume that the range measurement corresponds exactly to position along
         the z-axis, as we are assuming there is no pitch and roll.
-        
+
         x : current state. A NumPy array
         """
         H = np.array([[0, 0, 1, 0, 0, 0, 0],
@@ -460,7 +460,22 @@ class UKFStateEstimator7D(object):
                       [0, 0, 0, 0, 0, 0, 1]])
         result = np.dot(H, x)
         return result
-        
+
+    def generate_alt_msg(self):
+        msg = Range()
+        if self.slope > 1.2:
+            self.inc = -0.01
+        if self.slope < 0.0:
+            self.inc = 0.01
+
+        self.slope += self.inc
+        msg.range = self.slope
+        print(f"range: {msg.range}")
+
+        msg.header.stamp = rospy.Time().now()
+
+        return msg
+
     def start_loop(self):
         """
         Begin the UKF's loop of predicting and updating. Publish a state
@@ -468,10 +483,13 @@ class UKFStateEstimator7D(object):
         """
         rate = rospy.Rate(self.loop_hz)
         while not rospy.is_shutdown():
-            if self.ready_to_filter:
+
+            self.altitude_data_callback(self.generate_alt_msg())
+            if True:
                 self.print_notice_if_first()
                 self.ukf_predict()
-                            
+                print(f"state: {self.ukf.x}")
+
                 # Now that a prediction has been formed to bring the current
                 # prior state estimate to the same point in time as the
                 # measurement, perform a measurement update with the most recent
@@ -479,8 +497,8 @@ class UKFStateEstimator7D(object):
                 self.ukf.update(self.last_measurement_vector)
                 self.publish_current_state()
             rate.sleep()
-        
-        
+
+
 def check_positive_float_duration(val):
     """
     Function to check that the --loop_hz command-line argument is a positive
@@ -490,16 +508,17 @@ def check_positive_float_duration(val):
     if value <= 0.0:
         raise argparse.ArgumentTypeError('Loop Hz must be positive')
     return value
-        
+
+
 def main():
     parser = argparse.ArgumentParser(description=('Estimate the drone\'s state '
                                      'with a UKF'))
     # Arguments to determine if the throttle command is being used. E.g.:
     #   rosrun topic_tools throttle messages /pidrone/altitude 40.0
     parser.add_argument('--altitude_throttled', action='store_true',
-            help=('Use throttled altitude topic altitude_throttle'))
+                        help=('Use throttled altitude topic altitude_throttle'))
     parser.add_argument('--imu_throttled', action='store_true',
-            help=('Use throttled IMU topic imu_throttle'))
+                        help=('Use throttled IMU topic imu_throttle'))
     parser.add_argument('--optical_flow_throttled', action='store_true',
                         help=('Use throttled optical flow topic /pidrone/picamera/twist_throttle'))
     parser.add_argument('--camera_pose_throttled', action='store_true',
@@ -526,6 +545,7 @@ def main():
         print(se.ukf.x)
         # print 'Most recent state covariance matrix:'
         # print se.ukf.P
-        
+
+
 if __name__ == '__main__':
     main()
