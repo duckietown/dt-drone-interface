@@ -43,8 +43,8 @@ class RangeFinderAverageNode(DTROS):
         #             and the gravity vector (towards the ground)
         self.range_angle = 0
 
-        self._sub_imu = rospy.Subscriber('imu', Imu, self.update_angle, queue_size=1) # do not increase the queue size
-        self._sub_tof = rospy.Subscriber('altitude_tof_driver_node/range', Range, self.callback, queue_size=1) # do not increase the queue size
+        self._sub_imu = rospy.Subscriber('flight_controller_node/imu', Imu, self.update_angle, queue_size=1) # do not increase the queue size
+        self._sub_tof = rospy.Subscriber('bottom_tof_driver_node/range', Range, self.callback, queue_size=1) # do not increase the queue size
 
         self._pub = rospy.Publisher('altitude_node', Range, queue_size=1) # is not tacking into account the center of mass of the drone
         self._heartbeat = rospy.Publisher('heartbeat/altitude_node', Empty, queue_size=1)
