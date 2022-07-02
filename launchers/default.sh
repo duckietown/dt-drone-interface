@@ -14,7 +14,7 @@ dt-launchfile-init
 
 # launching app
 dt-exec roslaunch --wait drone_interface all.launch \
-    veh:=$VEHICLE_NAME
+    veh:="${VEHICLE_NAME}"
 
 
 # ----------------------------------------------------------------------------
