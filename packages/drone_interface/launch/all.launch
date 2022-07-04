@@ -20,8 +20,10 @@
     </include>
 -->
 
-<!--    <include file="$(find state_estimator)/launch/state_estimator_node.launch">-->
-<!--        <arg name="veh" value="$(arg veh)"/>-->
-<!--    </include>-->
+<!-- 
+<include file="$(find state_estimator)/launch/state_estimator_node.launch">
+    <arg name="veh" value="$(arg veh)"/>
+</include>
+-->
 
 </launch>

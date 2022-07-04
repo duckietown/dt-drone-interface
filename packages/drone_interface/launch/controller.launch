@@ -1,0 +1,9 @@
+<launch>
+    <arg name="veh" doc="Specify a vehicle name"/>
+    <arg name="param_file_name" default="default" doc="Specify a param file. ex:megaman"/>
+
+<include file="$(find state_estimator)/launch/state_estimator_node.launch">
+    <arg name="veh" value="$(arg veh)"/>
+</include>
+
+</launch>
