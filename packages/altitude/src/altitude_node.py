@@ -25,6 +25,9 @@ class AltitudeNode(DTROS):
         # and the gravity vector (towards the ground)
         self._angle = 0
 
+        # we keep track of the last range to properly handle out-of-range messages
+        self._last_range = 0
+
         # subscribers
         self._sub_imu = rospy.Subscriber('~imu', Imu, self.imu_cb, queue_size=1)
         self._sub_tof = rospy.Subscriber('~tof', Range, self.tof_cb, queue_size=1)
@@ -67,8 +70,18 @@ class AltitudeNode(DTROS):
             msg:  the message from the Time-of-Flight sensor
 
         """
-        range = max(msg.range - self._h_offset, 0.0)
+        range = msg.range
+        if range < msg.min_range or range > msg.max_range:
+            # out-of-range, assume min/max range that is closest to last (valid) range
+            mid_range = msg.max_range / 2.0
+            range = msg.max_range if self._last_range > mid_range else msg.min_range
+        else:
+            self._last_range = msg.range
+        # offset the range by the distance between the sensor frame and the footprint frame
+        range = max(range - self._h_offset, 0.0)
+        # compute altitude from range and angle
         altitude = range * np.cos(self._angle)
+        # publish message
         msg = Range(
             header=msg.header,
             radiation_type=msg.radiation_type,
@@ -78,6 +91,7 @@ class AltitudeNode(DTROS):
             range=altitude
         )
         self._pub.publish(msg)
+        # update heartbeat
         self._heartbeat.publish(Empty())
 
 
