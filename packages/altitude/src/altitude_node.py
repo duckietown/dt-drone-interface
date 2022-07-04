@@ -71,7 +71,7 @@ class AltitudeNode(DTROS):
 
         """
         range = msg.range
-        if range < msg.min_range or range > msg.max_range:
+        if range > msg.max_range:
             # out-of-range, assume min/max range that is closest to last (valid) range
             mid_range = msg.max_range / 2.0
             range = msg.max_range if self._last_range > mid_range else msg.min_range
