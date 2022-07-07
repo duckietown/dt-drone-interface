@@ -72,11 +72,12 @@ class AltitudeNode(DTROS):
         """
         range = msg.range
         if range > msg.max_range:
-            # out-of-range, assume min/max range that is closest to last (valid) range
-            mid_range = msg.max_range / 2.0
-            range = msg.max_range if self._last_range > mid_range else msg.min_range
-        else:
-            self._last_range = msg.range
+            if self._last_range == 0:
+                return
+            # out-of-range, assume last range
+            range = self._last_range
+        # keep track of last range
+        self._last_range = range
         # offset the range by the distance between the sensor frame and the footprint frame
         range = max(range - self._h_offset, 0.0)
         # compute altitude from range and angle
