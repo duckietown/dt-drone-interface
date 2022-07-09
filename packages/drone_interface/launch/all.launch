@@ -14,20 +14,4 @@
         <arg name="param_file_name" value="$(arg param_file_name)"/>
     </include>
 
-    <!-- Altitude: combines reading from the bottom ToF and the attitude from the IMU to produce an estimate of the altitude -->
-    <include file="$(find altitude)/launch/altitude_node.launch">
-        <arg name="veh" value="$(arg veh)"/>
-        <arg name="param_file_name" value="$(arg param_file_name)"/>
-    </include>
-
- <!-- 
-    <include file="$(find pid_controller)/launch/pid_controller_node.launch">
-        <arg name="veh" value="$(arg veh)"/>
-    </include>
--->
-
-<!--    <include file="$(find state_estimator)/launch/state_estimator_node.launch">-->
-<!--        <arg name="veh" value="$(arg veh)"/>-->
-<!--    </include>-->
-
 </launch>
