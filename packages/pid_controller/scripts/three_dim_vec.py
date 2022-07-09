@@ -1,5 +1,6 @@
-import numpy as np
 from dataclasses import dataclass
+
+import numpy as np
 
 
 @dataclass
@@ -39,26 +40,30 @@ class ThreeDimVec(object):
 
 class Position(ThreeDimVec):
     """ Struct to store position components x,y,z"""
+
     def __init__(self, x=0.0, y=0.0, z=0.0):
-        super(Position, self).__init__(x,y,z)
+        super(Position, self).__init__(x, y, z)
 
 
 class Velocity(ThreeDimVec):
     """ Struct to store velocity components x,y,z"""
+
     def __init__(self, x=0.0, y=0.0, z=0.0):
-        super(Velocity, self).__init__(x,y,z)
+        super(Velocity, self).__init__(x, y, z)
 
 
 class Error(ThreeDimVec):
     """ Struct to store 3D errors which is in the form x,y,z"""
+
     def __init__(self, x=0.0, y=0.0, z=0.0):
-        super(Error, self).__init__(x,y,z)
+        super(Error, self).__init__(x, y, z)
 
 
 class RPY(ThreeDimVec):
     """ Struct to store the roll, pitch, in x,y,z"""
+
     def __init__(self, r=0.0, p=0.0, y=0.0):
-        super(RPY, self).__init__(r,p,y)
+        super(RPY, self).__init__(r, p, y)
         self.r = self.x
         self.p = self.y
         self.y = self.z

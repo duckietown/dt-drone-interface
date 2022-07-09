@@ -6,8 +6,15 @@ import rospy
 #####################################################
 #						PID							#
 #####################################################
-class PIDaxis():
-    def __init__(self, kp, ki, kd, i_range=None, d_range=None, control_range=(1000, 2000), midpoint=1500, smoothing=True):
+class PIDaxis:
+
+    def __init__(self,
+                 kp, ki, kd,
+                 i_range=None,
+                 d_range=None,
+                 control_range=(1000, 2000),
+                 midpoint=1500,
+                 smoothing=True):
         # Tuning
         self.kp = kp
         self.ki = ki
@@ -25,7 +32,8 @@ class PIDaxis():
         self._old_err = None
         self._p = 0
         self.integral = self.init_i
-        self.init_i = 0.0  # effective only once
+        # effective only once
+        self.init_i = 0.0
         self._d = 0
         self._dd = 0
         self._ddd = 0
@@ -34,7 +42,8 @@ class PIDaxis():
         self._old_err = None
         self._p = 0
         self.integral = self.init_i
-        self.init_i = 0.0  # effective only once
+        # effective only once
+        self.init_i = 0.0
         self._d = 0
         self._dd = 0
         self._ddd = 0
@@ -60,7 +69,7 @@ class PIDaxis():
 
         # Smooth over the last three d terms
         if self.smoothing:
-            self._d = (self._d * 8.0 + self._dd * 5.0 + self._ddd * 2.0)/15.0
+            self._d = (self._d * 8.0 + self._dd * 5.0 + self._ddd * 2.0) / 15.0
             self._ddd = self._dd
             self._dd = self._d
 
@@ -73,17 +82,35 @@ class PIDaxis():
 
 # noinspection DuplicatedCode
 class PID:
-
     height_factor = 1.238
     battery_factor = 0.75
 
     def __init__(self,
+                 roll=PIDaxis(
+                     2.0, 1.0, 0.0,
+                     control_range=(1400, 1600),
+                     midpoint=1500,
+                     i_range=(-100, 100)
+                 ),
+                 roll_low=PIDaxis(
+                     0.0, 0.5, 0.0,
+                     control_range=(1400, 1600),
+                     midpoint=1500,
+                     i_range=(-150, 150)
+                 ),
 
-                 roll=PIDaxis(2.0, 1.0, 0.0, control_range=(1400, 1600), midpoint=1500, i_range=(-100, 100)),
-                 roll_low=PIDaxis(0.0, 0.5, 0.0, control_range=(1400, 1600), midpoint=1500, i_range=(-150, 150)),
-
-                 pitch=PIDaxis(2.0, 1.0, 0.0, control_range=(1400, 1600), midpoint=1500, i_range=(-100, 100)),
-                 pitch_low=PIDaxis(0.0, 0.5, 0.0, control_range=(1400, 1600), midpoint=1500, i_range=(-150, 150)),
+                 pitch=PIDaxis(
+                     2.0, 1.0, 0.0,
+                     control_range=(1400, 1600),
+                     midpoint=1500,
+                     i_range=(-100, 100)
+                 ),
+                 pitch_low=PIDaxis(
+                     0.0, 0.5, 0.0,
+                     control_range=(1400, 1600),
+                     midpoint=1500,
+                     i_range=(-150, 150)
+                 ),
 
                  yaw=PIDaxis(0.0, 0.0, 0.0),
 
@@ -91,14 +118,25 @@ class PID:
                  # height_safety_here (in the sense that the motors are limited)
                  # 1.0, 0.5, 2.0
                  # 1.0, 0.05, 2.0
-                 throttle=PIDaxis(1.0/height_factor * battery_factor, 0.5/height_factor * battery_factor,
-                                  2.0/height_factor * battery_factor, i_range=(-400, 402), control_range=(1200, 2000),
-                                  d_range=(-40, 40), midpoint=1250),
-                 throttle_low=PIDaxis(1.0/height_factor * battery_factor, 0.05/height_factor * battery_factor,
-                                      2.0/height_factor * battery_factor, i_range=(0, 401), control_range=(1200, 2000),
-                                      d_range=(-40, 40), midpoint=1250)
+                 throttle=PIDaxis(
+                     1.0 / height_factor * battery_factor,
+                     0.5 / height_factor * battery_factor,
+                     2.0 / height_factor * battery_factor,
+                     i_range=(-400, 402),
+                     control_range=(1200, 2000),
+                     d_range=(-40, 40),
+                     midpoint=1250
+                 ),
+                 throttle_low=PIDaxis(
+                     1.0 / height_factor * battery_factor,
+                     0.05 / height_factor * battery_factor,
+                     2.0 / height_factor * battery_factor,
+                     i_range=(0, 401),
+                     control_range=(1200, 2000),
+                     d_range=(-40, 40),
+                     midpoint=1250
+                 )
                  ):
-
         self.trim_controller_cap_plane = 0.05
         self.trim_controller_thresh_plane = 0.0001
 
@@ -110,7 +148,7 @@ class PID:
 
         self.yaw = yaw
 
-        self.trim_controller_cap_throttle = 5.0 #5.0
+        self.trim_controller_cap_throttle = 5.0
         self.trim_controller_thresh_throttle = 5.0
 
         self.throttle = throttle
@@ -119,6 +157,7 @@ class PID:
         self._t = None
 
         # Tuning values specific to each drone
+        # TODO: these should be params
         self.roll_low.init_i = 0.31
         self.pitch_low.init_i = -1.05
         self.throttle_low.init_i = 200
@@ -165,7 +204,6 @@ class PID:
                 self.roll_low.step(-self.trim_controller_cap_plane, time_elapsed)
             else:
                 self.roll_low.step(error.x, time_elapsed)
-
             cmd_r = self.roll_low.integral + self.roll.step(error.x, time_elapsed)
 
         # Compute pitch command
@@ -180,7 +218,6 @@ class PID:
                 self.pitch_low.step(-self.trim_controller_cap_plane, time_elapsed)
             else:
                 self.pitch_low.step(error.y, time_elapsed)
-
             cmd_p = self.pitch_low.integral + self.pitch.step(error.y, time_elapsed)
 
         # Compute yaw command

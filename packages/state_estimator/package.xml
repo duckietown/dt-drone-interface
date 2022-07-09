@@ -3,8 +3,9 @@
   <name>state_estimator</name>
   <version>0.0.0</version>
   <description>The state_estimator package</description>
-  <maintainer email="pi@todo.todo">pi</maintainer>
-  
+  <maintainer email="afdaniele@duckietown.com">Andrea F. Daniele</maintainer>
+  <maintainer email="jacopo@duckietown.com">Jacopo Tani</maintainer>
+
   <license>TODO</license>
 
   <run_depend>message_runtime</run_depend>
