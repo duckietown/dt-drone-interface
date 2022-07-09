@@ -135,7 +135,7 @@ class PIDController(DTROS):
         )
 
         # subscribers
-        rospy.Subscriber("~mode", Mode, self.current_mode_callback, queue_size=1)
+        rospy.Subscriber("~mode", Mode, self.current_mode_callback, queue_size=10)
         rospy.Subscriber("~state", Odometry, self.current_state_callback, queue_size=1)
         # TODO: to be refactored
         rospy.Subscriber("desired/pose", Pose, self.desired_pose_callback, queue_size=1)
@@ -407,6 +407,11 @@ def main(controller_class):
                 pid.reset()
                 # ---
                 pid.loginfo("Detected state change: ARMED -> FLYING")
+                pid.previous_mode = pid.current_mode
+
+            elif pid.current_mode == 0:
+                # ---
+                pid.loginfo("Detected state change: ARMED -> DISARMED")
                 pid.previous_mode = pid.current_mode
 
         # if the drone is flying, send the fly_command
