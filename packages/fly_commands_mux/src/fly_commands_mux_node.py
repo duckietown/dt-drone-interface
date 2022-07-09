@@ -26,13 +26,12 @@ class FlyCommandsMuxNode(DTROS):
         self.last_stamp_manual = rospy.Time.now()
         self.last_stamp_autonomous = rospy.Time.now()
 
-        # Subscriber
-        self.sub_image = rospy.Subscriber("~manual", DroneControl, self.cb_manual, queue_size=1)
-        self.sub_image = rospy.Subscriber("~autonomous", DroneControl, self.cb_autonomous,
-                                          queue_size=1)
+        # subscribers
+        rospy.Subscriber("~commands/manual", DroneControl, self.cb_manual, queue_size=1)
+        rospy.Subscriber("~commands/autonomous", DroneControl, self.cb_autonomous, queue_size=1)
 
-        # Publishers
-        self.pub_cmds = rospy.Publisher("~final_commands", DroneControl, queue_size=1)
+        # publishers
+        self.pub_cmds = rospy.Publisher("~commands/output", DroneControl, queue_size=1)
 
         # timer
         self._timer = rospy.Timer(
