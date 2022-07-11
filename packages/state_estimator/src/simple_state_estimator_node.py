@@ -27,6 +27,7 @@ class SimpleStateEstimatorNode(DTROS):
             Odometry(
                 header=Header(
                     stamp=rospy.Time.now(),
+                    frame_id="map",
                 ),
                 pose=PoseWithCovariance(
                     pose=Pose(

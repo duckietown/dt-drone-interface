@@ -159,27 +159,31 @@ class PIDController(DTROS):
 
     def desired_pose_callback(self, msg):
         """ Update the desired pose """
+
         # store the previous desired position
         self.last_desired_position = self.desired_position
-        # set the desired positions equal to the desired pose message
+
+        # --- set internal desired pose equal to the desired pose ros message ---
+
+        # ABSOLUTE desired x, y, z
         if self.absolute_desired_position:
             self.desired_position.x = msg.position.x
             self.desired_position.y = msg.position.y
-            # the desired z must be above z and below the range of the ir sensor (.55meters)
-            # height_safety_here
-            self.desired_position.z = msg.position.z if 0 <= desired_z <= self.max_height * 0.8 else self.last_desired_position.z
-        # set the desired positions relative to the current position (except for z to make it more responsive)
+            # the desired z must be above 0 and below the range of the ir sensor (.55meters)
+            self.desired_position.z = msg.position.z if 0 <= msg.position.z <= self.max_height * 0.8 else self.last_desired_position.z
+
+        # RELATIVE desired x, y to the CURRENT pose, but
+        # RELATIVE desired z to the PREVIOUS DESIRED z (so it appears more responsive)
         else:
             self.desired_position.x = self.current_position.x + msg.position.x
             self.desired_position.y = self.current_position.y + msg.position.y
-            # set the disired z position relative to the last desired position (doesn't limit the mag of the error)
-            # the desired z must be above z and below the range of the ir sensor (.55meters)
+            # (doesn't limit the mag of the error)
             desired_z = self.last_desired_position.z + msg.position.z
-            # height_safety_here
+            # the desired z must be above 0 and below the range of the ir sensor (.55meters)
             self.desired_position.z = desired_z if 0 <= desired_z <= self.max_height * 0.8 else self.last_desired_position.z
 
         if self.desired_position != self.last_desired_position:
-            # the drone is moving between desired positions
+            # desired pose changed, the drone should move
             self.moving = True
             print('moving')
         # publish target height
