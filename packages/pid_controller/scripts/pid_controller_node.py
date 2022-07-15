@@ -7,7 +7,7 @@ import sys
 import tf
 from duckietown_msgs.msg import DroneControl as RC
 from duckietown_msgs.msg import DroneMode as Mode
-from geometry_msgs.msg import Pose, Twist
+from geometry_msgs.msg import Pose, Twist, Vector3
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Empty, Bool, Float32
 
@@ -40,8 +40,7 @@ class PIDController(DTROS):
 
         # Initialize the current and desired positions
         self.current_position = Position()
-        # TODO: 0.5 is hovering height? hardcoded?
-        self.desired_position = Position(z=0.5)
+        self.desired_position = Position(z=self.hover_height)
         self.last_desired_position = Position(z=0.5)
 
         # Initialize the position error
@@ -132,6 +131,16 @@ class PIDController(DTROS):
             Float32,
             queue_size=1,
             latch=True
+        )
+        self.debug_throttle_pid_pub = rospy.Publisher(
+            "~debug/throttle/pid",
+            Vector3,
+            queue_size=1,
+        )
+        self.debug_throttle_low_pid_pub = rospy.Publisher(
+            "~debug/throttle_low/pid",
+            Vector3,
+            queue_size=1,
         )
 
         # subscribers
@@ -379,8 +388,8 @@ class PIDController(DTROS):
 
 
 def main(controller_class):
-    # Verbosity between 0 and 2, 2 is most verbose
-    verbose = 2
+    # Verbosity between 0 and 3, with increasing verbosity
+    verbose = 0
 
     # create the PIDController object
     pid = controller_class()
@@ -395,6 +404,10 @@ def main(controller_class):
         # Steps the PID. If we are not flying, this can be used to
         # examine the behavior of the PID based on published values
         fly_command = pid.step()
+
+        # always reset when not flying
+        if pid.current_mode == 0 or pid.current_mode == 1:
+            pid.reset()
 
         # reset the pids after arming and start up in velocity control
         if pid.previous_mode == 0:  # 'DISARMED'
@@ -446,18 +459,24 @@ def main(controller_class):
                 pid.previous_mode = pid.current_mode
 
         if verbose >= 2:
-            if pid.position_control:
-                print('current position:', pid.current_position)
-                print('desired position:', pid.desired_position)
-                print('position error:', pid.position_error)
-            else:
-                print('current velocity:', pid.current_velocity)
-                print('desired velocity:', pid.desired_velocity)
-                print('velocity error:  ', pid.velocity_error)
+            if verbose >= 3:
+                if pid.position_control:
+                    print('current position:', pid.current_position)
+                    print('desired position:', pid.desired_position)
+                    print('position error:', pid.position_error)
+                else:
+                    print('current velocity:', pid.current_velocity)
+                    print('desired velocity:', pid.desired_velocity)
+                    print('velocity error:  ', pid.velocity_error)
             print('pid_error:       ', pid.pid_error)
             print('r,p,y,t:', fly_command)
-            print('throttle_low._i', pid.pid.throttle_low.integral)
-            print('throttle._i', pid.pid.throttle.integral)
+            # print('throttle_low._i', pid.pid.throttle_low.integral)
+            # print('throttle._i', pid.pid.throttle.integral)
+
+        tp, ti, td = pid.pid.throttle.pid_components
+        pid.debug_throttle_pid_pub.publish(Vector3(x=tp, y=ti, z=td))
+        tlp, tli, tld = pid.pid.throttle_low.pid_components
+        pid.debug_throttle_low_pid_pub.publish(Vector3(x=tlp, y=tli, z=tld))
 
         if verbose >= 1:
             error = pid.pid_error

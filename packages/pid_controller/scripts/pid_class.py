@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import rospy
+from collections import deque
 
 
 #####################################################
@@ -14,7 +15,10 @@ class PIDaxis:
                  d_range=None,
                  control_range=(1000, 2000),
                  midpoint=1500,
-                 smoothing=True):
+                 smoothing=True,
+                 is_throttle=False,
+                 smoothing_window=8,
+                 ):
         # Tuning
         self.kp = kp
         self.ki = ki
@@ -28,6 +32,11 @@ class PIDaxis:
         # initial i value
         self.init_i = 0.0
 
+        # if is throttle, scale down p if err is positive (meaning current height is above set point)
+        self._is_throttle = is_throttle
+        # d smoothing window size
+        self._smooth_window = smoothing_window
+
         # Internal
         self._old_err = None
         self._p = 0
@@ -37,6 +46,7 @@ class PIDaxis:
         self._d = 0
         self._dd = 0
         self._ddd = 0
+        self.ds = deque()
 
     def reset(self):
         self._old_err = None
@@ -55,29 +65,74 @@ class PIDaxis:
 
         # Find the p component
         self._p = err * self.kp
+        if self._is_throttle:
+            # go down slower
+            if err < 0:
+                self._p *= 0.01
+            # don't shoot up
+            self._p = min(self._p, 15)
 
         # Find the i component
-        self.integral += err * self.ki * time_elapsed
+        delta_i_part = err * self.ki * time_elapsed
+        if self._is_throttle:
+            if err < 0:
+                if abs(err) < 5:
+                    delta_i_part *= 0.9
+                else:
+                    delta_i_part *= 1.3
+            else:
+                if 10 < err <= 16:  # slow down
+                    delta_i_part *= 0.4
+                if 0 <= err <= 10:  # soft set point
+                    delta_i_part *= 0.1
+
+        self.integral += delta_i_part
         if self.i_range is not None:
             self.integral = max(self.i_range[0], min(self.integral, self.i_range[1]))
 
         # Find the d component
         self._d = (err - self._old_err) * self.kd / time_elapsed
-        if self.d_range is not None:
-            self._d = max(self.d_range[0], min(self._d, self.d_range[1]))
         self._old_err = err
 
-        # Smooth over the last three d terms
-        if self.smoothing:
-            self._d = (self._d * 8.0 + self._dd * 5.0 + self._ddd * 2.0) / 15.0
-            self._ddd = self._dd
-            self._dd = self._d
+        # # Smooth over the last three d terms
+        # if self.smoothing:
+        #     self._d = (self._d * 8.0 + self._dd * 5.0 + self._ddd * 2.0) / 15.0
+        #     self._ddd = self._dd
+        #     self._dd = self._d
+
+        # add d to list of ds
+        if len(self.ds) >= self._smooth_window:
+            self.ds.popleft()
+        self.ds.append(self._d)
+        # smooth
+        # weights = range(1, len(self.ds) + 1)  # more weight on current frame
+        weights = [1] * len(self.ds)  # equal weights
+        total_w = sum(weights)
+        sum_tmp = 0.0
+        for val, w in zip(self.ds, weights):
+            sum_tmp += val * w
+        self._d = int(sum_tmp / float(total_w))
+
+        if self.d_range is not None:
+            self._d = max(self.d_range[0], min(self._d, self.d_range[1]))
+
+        self.ds[-1] = self._d  # update for next round
 
         # Calculate control output
-        raw_output = self._p + self.integral + self._d
+        raw_output = self._p + self.integral
+        if self._is_throttle:
+            if len(self.ds) >= self._smooth_window * 0.667:
+                # print("used", self._d)
+                raw_output += self._d
+        else:
+            raw_output += self._d
         output = min(max(raw_output + self.midpoint, self.control_range[0]), self.control_range[1])
 
         return output
+
+    @property
+    def pid_components(self):
+        return self._p, self.integral, self._d
 
 
 # noinspection DuplicatedCode
@@ -119,22 +174,40 @@ class PID:
                  # 1.0, 0.5, 2.0
                  # 1.0, 0.05, 2.0
                  throttle=PIDaxis(
-                     1.0 / height_factor * battery_factor,
-                     0.5 / height_factor * battery_factor,
-                     2.0 / height_factor * battery_factor,
-                     i_range=(-400, 402),
-                     control_range=(1200, 2000),
-                     d_range=(-40, 40),
-                     midpoint=1250
+                     0.5,
+                     0.4,
+                     # 2.2,
+                     # 0.0,
+                     20.0,
+                     # 1.8,
+                     # 0.5,
+                     # 2.2,
+
+                     # 1.0 / height_factor * battery_factor,
+                     # 0.5 / height_factor * battery_factor,
+                     # 2.0 / height_factor * battery_factor,
+                     i_range=(-200, 250),
+                     # control_range=(1200, 2000),
+                     # i_range=(-40, 400),
+                     control_range=(1200, 1550),
+                     d_range=(-5, 40),
+                     midpoint=1300,
+                     is_throttle=True,
+                     smoothing_window=200,
                  ),
                  throttle_low=PIDaxis(
-                     1.0 / height_factor * battery_factor,
-                     0.05 / height_factor * battery_factor,
-                     2.0 / height_factor * battery_factor,
-                     i_range=(0, 401),
-                     control_range=(1200, 2000),
-                     d_range=(-40, 40),
-                     midpoint=1250
+                     1.2,
+                     0.05,
+                     2.2,
+
+                     # 1.0 / height_factor * battery_factor,
+                     # 0.05 / height_factor * battery_factor,
+                     # 2.0 / height_factor * battery_factor,
+                     # i_range=(0, 400),
+                     control_range=(1200, 1800),
+                     # d_range=(-10, 50),
+                     midpoint=1300,
+                     # is_throttle=True,
                  )
                  ):
         self.trim_controller_cap_plane = 0.05
@@ -223,19 +296,21 @@ class PID:
         # Compute yaw command
         cmd_y = 1500 + cmd_yaw_velocity
 
-        if abs(error.z) < self.trim_controller_thresh_throttle:
-            self.throttle_low.integral += self.throttle.integral
-            self.throttle.integral = 0
-            cmd_t = self.throttle_low.step(error.z, time_elapsed)
-        else:
-            if error.z > self.trim_controller_cap_throttle:
-                self.throttle_low.step(self.trim_controller_cap_throttle, time_elapsed)
-            elif error.z < -self.trim_controller_cap_throttle:
-                self.throttle_low.step(-self.trim_controller_cap_throttle, time_elapsed)
-            else:
-                self.throttle_low.step(error.z, time_elapsed)
-
-            cmd_t = self.throttle_low.integral + self.throttle.step(error.z, time_elapsed)
+        # single pid
+        cmd_t = self.throttle.step(error.z, time_elapsed)
+        # if abs(error.z) < self.trim_controller_thresh_throttle:
+        #     self.throttle_low.integral += self.throttle.integral
+        #     self.throttle.integral = 0
+        #     cmd_t = self.throttle_low.step(error.z, time_elapsed)
+        # else:
+        #     if error.z > self.trim_controller_cap_throttle:
+        #         self.throttle_low.step(self.trim_controller_cap_throttle, time_elapsed)
+        #     elif error.z < -self.trim_controller_cap_throttle:
+        #         self.throttle_low.step(-self.trim_controller_cap_throttle, time_elapsed)
+        #     else:
+        #         self.throttle_low.step(error.z, time_elapsed)
+        #
+        #     cmd_t = self.throttle_low.integral + self.throttle.step(error.z, time_elapsed)
 
         # Print statements for the low and high i components
         # print "Roll  low, hi:", self.roll_low._i, self.roll._i
