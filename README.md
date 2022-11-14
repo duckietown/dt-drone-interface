@@ -43,4 +43,4 @@ Change the file `launch.sh` in your repository to
 launch your code.
 
 
-docker run --name drone-interface --rm -e "VEHICLE_NAME=drone2" -e "ROBOT_TYPE=duckiedrone" -e "VEHICLE_IP=10.0.0.60" -e "ROS_MASTER_URI=http://10.0.0.60:11311" -it --net=host --privileged  duckietown/dt-drone-interface:daffy-amd64
+docker run --name drone-interface --rm -e "VEHICLE_NAME=drone2" -e "ROBOT_TYPE=duckiedrone" -e "VEHICLE_IP=10.0.0.60" -e "ROS_MASTER_URI=http://10.0.0.60:11311" -it --net=host --privileged  duckietown/dt-drone-interface:daffy
