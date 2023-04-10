@@ -4,7 +4,7 @@ docs_config_version: v1
 project: "dt-drone-interface"
 copyright: "Duckietown"
 author: "Arthur MacKeith"
-version: "daffy"
+version: "ente"
 custom_sections:  [
   "Configuration",
   "Subscribers",
