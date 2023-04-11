@@ -47,6 +47,12 @@ ENV DT_REPO_PATH "${REPO_PATH}"
 ENV DT_LAUNCH_PATH "${LAUNCH_PATH}"
 ENV DT_LAUNCHER "${LAUNCHER}"
 
+# TODO: this might not be needed
+#RUN apt-key adv \
+#    --keyserver hkp://keyserver.ubuntu.com:80 \
+#    --recv-keys F42ED6FBAB17C654
+# TODO: this might not be needed
+
 # install apt dependencies
 COPY ./dependencies-apt.txt "${REPO_PATH}/"
 RUN dt-apt-install ${REPO_PATH}/dependencies-apt.txt

@@ -81,31 +81,25 @@ class UKFStateEstimator7D(object):
         self.last_control_input = np.array([0.0, 0.0, 0.0])
         
         self.last_measurement_vector = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        
-        self.initialize_ros()
 
-        
-    def initialize_ros(self):
-        """
-        Initialize ROS-related objects, e.g., the node, subscribers, etc.
-        """
+        # ros
         self.node_name = os.path.splitext(os.path.basename(__file__))[0]
         print('Initializing {} node...'.format(self.node_name))
         rospy.init_node(self.node_name)
-        
         # Create the publisher to publish state estimates
         self.state_pub = rospy.Publisher('state_estimator_node/ukf_7d', Odometry, queue_size=1,
                                          tcp_nodelay=False)
-        
+
         # Subscribe to topics to which the drone publishes in order to get raw
         # data from sensors, which we can then filter
-        rospy.Subscriber(self.imu_topic_str, Imu, self.imu_data_callback)
-        rospy.Subscriber(self.altitude_topic_str, Range, self.altitude_data_callback)
-        rospy.Subscriber(self.optical_flow_topic_str, TwistStamped,
-                         self.optical_flow_data_callback)
-        rospy.Subscriber(self.camera_pose_topic_str, PoseStamped,
-                         self.camera_pose_data_callback)
-        
+        self._imu_sub = rospy.Subscriber(self.imu_topic_str, Imu, self.imu_data_callback, queue_size=1)
+        self._altitude_sub = rospy.Subscriber(
+            self.altitude_topic_str, Range, self.altitude_data_callback, queue_size=1)
+        self._of_sub = rospy.Subscriber(
+            self.optical_flow_topic_str, TwistStamped, self.optical_flow_data_callback)
+        self._cam_pose_sub = rospy.Subscriber(
+            self.camera_pose_topic_str, PoseStamped, self.camera_pose_data_callback)
+
     def initialize_ukf(self):
         """
         Initialize the parameters of the Unscented Kalman Filter (UKF) that is
@@ -215,6 +209,7 @@ class UKFStateEstimator7D(object):
         Compute the prior for the UKF based on the current state, a control
         input, and a time step.
         """
+        # print(self.dt, self.last_control_input)
         self.ukf.predict(dt=self.dt, u=self.last_control_input)
         
     def print_notice_if_first(self):
@@ -232,6 +227,7 @@ class UKFStateEstimator7D(object):
         if self.in_callback:
             return
         self.in_callback = True
+        # print("cb_imu")
         self.last_control_input = np.array([data.linear_acceleration.x,
                                             data.linear_acceleration.y,
                                             data.linear_acceleration.z])
@@ -250,9 +246,16 @@ class UKFStateEstimator7D(object):
         if self.in_callback:
             return
         self.in_callback = True
+        # print("cb_altitude")
         if self.ready_to_filter:
             self.update_input_time(data)
             self.last_measurement_vector[0] = data.range
+            # tst
+            self.last_measurement_vector[1] = self.ukf.x[0]
+            self.last_measurement_vector[2] = self.ukf.x[1]
+            self.last_measurement_vector[3] = self.ukf.x[3]
+            self.last_measurement_vector[4] = self.ukf.x[4]
+            self.last_measurement_vector[5] = self.ukf.x[6]
         else:
             self.initialize_input_time(data)
             # Got a raw slant range reading, so update the initial state
@@ -337,9 +340,9 @@ class UKFStateEstimator7D(object):
         self.in_callback = False
             
     def check_if_ready_to_filter(self):
-        print("checking ready to filter")
         self.ready_to_filter = (self.got_altitude and self.got_imu)
-                        
+        # print(f"ready to filter? {self.ready_to_filter}")
+
     def publish_current_state(self):
         """
         Publish the current state estimate and covariance from the UKF. This is
@@ -377,8 +380,10 @@ class UKFStateEstimator7D(object):
         # Prepare covariance matrices
         # TODO: Finish populating these matrices, if deemed necessary
         # 36-element array, in a row-major order, according to ROS msg docs
-        pose_cov_mat = np.full((36,), np.nan)
-        twist_cov_mat = np.full((36,), np.nan)
+        # pose_cov_mat = np.full((36,), np.nan)
+        # twist_cov_mat = np.full((36,), np.nan)
+        pose_cov_mat = np.full((36,), 0.0)
+        twist_cov_mat = np.full((36,), 0.0)
         pose_cov_mat[14] = self.ukf.P[2, 2] # z variance
         twist_cov_mat[14] = self.ukf.P[5, 5] # z velocity variance
         
@@ -429,7 +434,7 @@ class UKFStateEstimator7D(object):
         u : control input. A NumPy array
         """
         accels_global_frame = self.apply_quaternion_vector_rotation(u, x[6])
-        
+
         dt2 = dt**2.0
         return x + np.array([x[3]*dt + 0.5*accels_global_frame[0]*dt2,
                              x[4]*dt + 0.5*accels_global_frame[1]*dt2,
@@ -438,7 +443,7 @@ class UKFStateEstimator7D(object):
                              accels_global_frame[1]*dt,
                              accels_global_frame[2]*dt,
                              0.0])
-        
+
     def measurement_function(self, x):
         """
         Transform the state x into measurement space. In this simple model, we

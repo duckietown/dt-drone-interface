@@ -1,19 +1,17 @@
 <launch>
-  <arg name="veh" />
-  <arg name="param_file_name" default="default" doc="Specify a param file. ex:megaman"/>
+    <arg name="veh" doc="Specify a vehicle name"/>
+    <arg name="param_file_name" default="default" doc="Specify a param file. ex:megaman"/>
 
     <!-- Joy Mapper: reads raw joy commands and trigger actions in Duckietown (e.g., move robot, start LF) -->
-    <include file="$(find joy_mapper)/launch/joy_mapper_node.launch">
+<!--    <include file="$(find joy_mapper)/launch/joy_mapper_node.launch">-->
+<!--        <arg name="veh" value="$(arg veh)"/>-->
+<!--        <arg name="param_file_name" value="$(arg param_file_name)"/>-->
+<!--    </include>-->
+
+    <!-- Fly Commands Mux: a multiplexer that combines manual and autonomous control signals according to a dynamic mask -->
+    <include file="$(find fly_commands_mux)/launch/fly_commands_mux_node.launch">
         <arg name="veh" value="$(arg veh)"/>
         <arg name="param_file_name" value="$(arg param_file_name)"/>
-    </include>
-
-    <include file="$(find pid_controller)/launch/pid_controller_node.launch">
-        <arg name="veh" value="$(arg veh)"/>
-    </include>
-
-    <include file="$(find state_estimator)/launch/state_estimator_node.launch">
-        <arg name="veh" value="$(arg veh)"/>
     </include>
 
 </launch>

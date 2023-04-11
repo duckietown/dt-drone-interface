@@ -5,6 +5,9 @@
 		watchtower, duckiedrone or traffic_light"/>
     <arg name="pkg_name" value="state_estimator"/>
     <group ns="$(arg veh)">
-        <node pkg="$(arg pkg_name)" type="state_estimator_node.py" name="state_estimator_node" output="screen"></node>
+
+        <node pkg="$(arg pkg_name)" type="altitude_controller_node.py"
+              name="altitude_controller_node" output="screen"></node>
+
     </group>
 </launch>

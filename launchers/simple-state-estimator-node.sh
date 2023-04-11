@@ -13,7 +13,10 @@ dt-launchfile-init
 # NOTE: Use `dt-exec COMMAND` to run the main process (blocking process)
 
 # launching app
-dt-exec roslaunch --wait drone_interface all.launch \
+dt-exec roslaunch --wait altitude altitude_node.launch \
+    veh:="${VEHICLE_NAME}"
+
+dt-exec roslaunch --wait state_estimator simple_state_estimator_node.launch \
     veh:="${VEHICLE_NAME}"
 
 
